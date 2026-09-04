@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TateCutcliffeGamePortfolio</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <h1>TateCutcliffeGamePortfolio</h1>
+      <p>A collection of small browser games I've built. Click any card to play.</p>
+    </header>
+
+    <main class="grid" id="grid"></main>
+
+    <footer class="site">
+      <span id="count"></span> &middot; built with vanilla HTML, CSS &amp; JavaScript
+    </footer>
+  </div>
+
+<script src="games.js"></script>
+<script>
+(function () {
+  const grid = document.getElementById('grid');
+  const countEl = document.getElementById('count');
+  const games = (window.GAMES || []).slice().sort((a, b) =>
+    (b.added || '').localeCompare(a.added || '')
+  );
+
+  if (!games.length) {
+    grid.innerHTML = '<div class="empty">No games yet. Add one to games.js to see it here.</div>';
+    countEl.textContent = '0 games';
+    return;
+  }
+
+  countEl.textContent = games.length + (games.length === 1 ? ' game' : ' games');
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+
+  grid.innerHTML = games.map((g) => {
+    const accent = g.accent || '#2563eb';
+    const thumbBg = `linear-gradient(135deg, ${accent}33, ${accent}0d)`;
+    const thumbInner = g.thumb
+      ? `<img src="${esc(g.thumb)}" alt="${esc(g.title)} screenshot">`
+      : `<span>${esc(g.icon || '🎮')}</span>`;
+    const tags = (g.tags || []).map((t) => `<span>${esc(t)}</span>`).join('');
+    return `
+      <a class="card" href="${esc(g.path)}">
+        <div class="thumb" style="--thumb-bg: ${thumbBg}">${thumbInner}</div>
+        <div class="body">
+          <h2>${esc(g.title)}</h2>
+          <p>${esc(g.blurb)}</p>
+          <div class="tags">${tags}</div>
+        </div>
+      </a>`;
+  }).join('');
+})();
+</script>
+</body>
+</html>
