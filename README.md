@@ -13,13 +13,14 @@ portfolio/
   games/
     tic-tac-toe/
       index.html  A self-contained game
-    3-2-1/
-      index.html  Timed anagram game
+    3-2-1/        Wadder — a daily word-ladder game (folder name kept for URL stability)
+      index.html  The game
       words.js    Bundled ~168k-word dictionary (window.THREE21_WORDS)
       freq.js     ~10k words by frequency, to pick a recognizable example word
+      climbs.js   781 precomputed 3→8 letter ladders
 ```
 
-3-2-1 also calls the Datamuse API (`api.datamuse.com`, no key) for two things:
+Wadder also calls the Datamuse API (`api.datamuse.com`, no key) for two things:
 the one-line definition on the game-over screen, and validating a submitted word
 that isn't in the bundled ENABLE list (which lacks newer words like "umami").
 Both degrade gracefully offline — the definition is hidden, and an unverifiable

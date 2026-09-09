@@ -17,10 +17,10 @@
  */
 window.GAMES = [
   {
-    title: "3·2·1",
+    title: "Wadder",
     path: "games/3-2-1/",
     blurb: "Climb from a 3-letter word up to an 8, one new letter per rung. A fresh Daily Climb every day.",
-    icon: "3·2·1",
+    icon: "🪜",
     accent: "#d97706",
     tags: ["Vanilla JS", "Word game", "Daily"],
     added: "2026-09-03"
