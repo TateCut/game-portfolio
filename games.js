@@ -19,10 +19,10 @@ window.GAMES = [
   {
     title: "3·2·1",
     path: "games/3-2-1/",
-    blurb: "Anagram a growing pool of letters against the clock — 3, then 5, then one more every stage.",
+    blurb: "Climb from a 3-letter word up to an 8, one new letter per rung. A fresh Daily Climb every day.",
     icon: "3·2·1",
     accent: "#d97706",
-    tags: ["Vanilla JS", "Word game", "Timed"],
+    tags: ["Vanilla JS", "Word game", "Daily"],
     added: "2026-09-03"
   },
   {
