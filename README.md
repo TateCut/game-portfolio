@@ -17,7 +17,7 @@ portfolio/
       index.html  The game
       words.js    Bundled ~168k-word dictionary (window.THREE21_WORDS)
       freq.js     ~10k words by frequency, to pick a recognizable example word
-      climbs.js   765 precomputed 3→8 letter ladders
+      climbs.js   746 precomputed 3→8 letter ladders
 ```
 
 Wadder also calls the Datamuse API (`api.datamuse.com`, no key) for two things:
