@@ -1,0 +1,41 @@
+name: Daily reminders
+
+# Every hour, remind players whose chosen reminder time has arrived (in their
+# own time zone) and who haven't played today's Daily Climb yet.
+# To send yourself a test: Actions tab > Daily reminders > Run workflow, and
+# enter your in-game player name (or the "Test ID" the reminder sheet shows
+# in dev mode, ?dev=1).
+on:
+  schedule:
+    - cron: "7 * * * *"   # :07 past every hour (UTC); off the top of the hour, when GitHub is busiest
+  workflow_dispatch:
+    inputs:
+      test_uid:
+        description: "Your player name or Test ID, to send yourself a test now (leave empty for a normal run)"
+        required: false
+        default: ""
+
+concurrency:
+  group: daily-reminders
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/reminders
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node send.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TEST_UID: ${{ github.event.inputs.test_uid }}

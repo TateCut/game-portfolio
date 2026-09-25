@@ -1,0 +1,10 @@
+{
+  "name": "daily-climb-reminders",
+  "private": true,
+  "description": "Hourly Daily Climb reminder sender, run by .github/workflows/daily-reminders.yml",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
