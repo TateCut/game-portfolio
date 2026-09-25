@@ -47,14 +47,8 @@ function localParts(tz, date) {
 // The game's day keys carry a version tag ("2026-09-25-r6"); compare dates only.
 const dayBase = (key) => (/^\d{4}-\d{2}-\d{2}/.exec(key || "") || [""])[0];
 
-function messageFor(player, today, yesterday) {
-  const last = dayBase(player.dailyLastDay);
-  const streak = last === yesterday ? (player.dailyStreak || 0) : 0;
-  if (streak >= 2) {
-    return { title: `Your ${streak}-day streak is on the line 🔥`, body: "Today's climb is waiting. Keep it going." };
-  }
-  return { title: "Today's climb is waiting ⛰️", body: "Three new climbs, 3 letters up to 8." };
-}
+// The whole notification: one line, no body (the phone adds the app name above it).
+const REMINDER_TITLE = "Today's climb is waiting ⛰️";
 
 const DEAD_TOKEN_CODES = new Set([
   "messaging/registration-token-not-registered",
@@ -87,10 +81,9 @@ async function main() {
       continue;
     }
 
-    let today, yesterday, hour;
+    let today, hour;
     try {
       ({ day: today, hour } = localParts(r.tz || "UTC", now));
-      yesterday = localParts(r.tz || "UTC", new Date(now.getTime() - 86400000)).day;
     } catch (e) {
       console.log(`Player ${snap.id}: bad time zone "${r.tz}", skipping`);
       skipped++;
@@ -103,13 +96,13 @@ async function main() {
       if (!inWindow || dayBase(player.dailyLastDay) === today || r.lastSentDay === today) { skipped++; continue; }
     }
 
-    const { title, body } = messageFor(player, today, yesterday);
+    const title = REMINDER_TITLE;
     const res = await fcm.sendEachForMulticast({
       tokens,
       webpush: {
         headers: { TTL: String(6 * 3600), Urgency: "high" }, // stale after 6h: don't deliver yesterday's nudge
-        notification: { title, body, icon: GAME_URL + "icon-192.png", tag: "daily-reminder" },
-        data: { title, body, url: GAME_URL },
+        notification: { title, icon: GAME_URL + "icon-192.png", tag: "daily-reminder" },
+        data: { title, url: GAME_URL },
         fcmOptions: { link: GAME_URL },
       },
     });
