@@ -1,0 +1,40 @@
+name: Daily stats
+
+# Once a day, after every time zone has finished yesterday's Daily Climb:
+# lock in final places, update each player's history + stats (profile page),
+# and recompute trophy rarity. Run it by hand (Actions tab > Daily stats >
+# Run workflow) to fill in past history; tick "rebuild" to redo every day.
+on:
+  schedule:
+    - cron: "17 13 * * *"   # 13:17 UTC — yesterday is over everywhere by 12:00 UTC
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Redo every past day (not just new ones)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: daily-stats
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tools/stats
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node finalize.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          REBUILD: ${{ github.event.inputs.rebuild == 'true' && '1' || '0' }}

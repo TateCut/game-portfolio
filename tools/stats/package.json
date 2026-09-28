@@ -1,0 +1,10 @@
+{
+  "name": "daily-climb-stats",
+  "private": true,
+  "description": "Once-a-day Daily Climb finalizer (final places, player history + stats, trophy rarity), run by .github/workflows/daily-stats.yml",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
