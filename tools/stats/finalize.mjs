@@ -3,10 +3,11 @@
 // 1. Final places. A daily's leaderboard can change until the day is over
 //    everywhere (the latest time zone, UTC-12, finishes day D at D+1 12:00
 //    UTC). For every closed day not yet finalized, rank its entrants the way
-//    the game does (most words, then fewest wrong words, then fastest, then
+//    the game does (most words, then most theme words, then fewest wrong words, then fastest, then
 //    who finished first) and write each player's result into their player
 //    record:  players/{uid}.history["YYYY-MM-DD"] = { t, s, ms, h, at, r, n }
-//      t words (0-18) · s wrong words · ms solve time · h hint used
+//             (+ m = the day's most words and th = theme words found, on themed days)
+//      t words (0-18, or 0-m) · s wrong words · ms solve time · h hint used
 //      at finished (epoch ms) · r final place · n players that day
 //    then mark dailies/{day}.finalized = true.
 // 2. Stats. For every player with history, recompute players/{uid}.stats
@@ -40,9 +41,11 @@ function isClosed(base, now) {
   const [y, m, d] = base.split("-").map(Number);
   return Date.UTC(y, m - 1, d + 1, 12) <= now;
 }
-// Same order as the game's leaderboard (index.html dailyCmp).
+// Same order as the game's leaderboard (index.html dailyCmp): words, then
+// theme words found (themed days), strikes, time, finish time.
 function dailyCmp(a, b) {
   return ((b.total || 0) - (a.total || 0)) ||
+    ((b.themeWords || 0) - (a.themeWords || 0)) ||
     ((a.strikes || 0) - (b.strikes || 0)) ||
     ((a.solveMs || 0) - (b.solveMs || 0)) ||
     ((a.finishedAt || 0) - (b.finishedAt || 0));
@@ -62,7 +65,7 @@ function computeStats(history) {
     st.played++;
     st.totalWords += e.t || 0;
     if (!e.h) st.noHintDays++;
-    if (e.t >= 18) {
+    if (e.t >= (e.m || 18)) {   // every word (m = that day's most; old dailies were 18)
       st.perfect++;
       if (!e.s) st.cleanPerfect++;
       if (e.ms > 0 && (st.fastestPerfectMs === null || e.ms < st.fastestPerfectMs)) st.fastestPerfectMs = e.ms;
@@ -95,6 +98,7 @@ async function main() {
     const writer = db.bulkWriter();
     entrants.forEach((e, i) => {
       const entry = { t: e.total || 0, s: e.strikes || 0, ms: e.solveMs || 0, h: !!e.hintUsed, at: e.finishedAt || 0, r: i + 1, n };
+      if (e.max) Object.assign(entry, { m: e.max, th: e.themeWords || 0 });   // themed day
       writer.set(db.doc(`players/${e.uid}`), { history: { [base]: entry } }, { merge: true });
       touched.add(e.uid);
     });
