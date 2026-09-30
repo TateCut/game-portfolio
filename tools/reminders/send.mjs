@@ -20,7 +20,7 @@ import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
-const GAME_URL = "https://tatecut.github.io/game-portfolio/games/3-2-1/";
+const GAME_URL = "https://thedailyclimb.com/";
 const SEND_WINDOW_HOURS = 3;
 const TEST_UID = (process.env.TEST_UID || "").trim();
 

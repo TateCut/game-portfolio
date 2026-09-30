@@ -17,10 +17,10 @@
  */
 window.GAMES = [
   {
-    title: "Wadder",
-    path: "games/3-2-1/",
-    blurb: "Climb from a 3-letter word up to an 8, one new letter per rung. A fresh Daily Climb every day.",
-    icon: "🪜",
+    title: "Daily Climb",
+    path: "https://thedailyclimb.com/",
+    blurb: "A themed word-ladder climb every day: from a 4-letter word up to peaks of 7 to 11 letters, one new letter per rung.",
+    icon: "⛰️",
     accent: "#d97706",
     tags: ["Vanilla JS", "Word game", "Daily"],
     added: "2026-09-03"
