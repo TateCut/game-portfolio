@@ -3,8 +3,9 @@
 // 1. Final places. A daily's leaderboard can change until the day is over
 //    everywhere (the latest time zone, UTC-12, finishes day D at D+1 12:00
 //    UTC). For every closed day not yet finalized, rank its entrants the way
-//    the game does (most words, then most theme words, then fewest wrong words, then fastest, then
-//    who finished first) and write each player's result into their player
+//    the game does for that day (from 2026-10-02: most points, then fastest,
+//    then who finished first; earlier days: most words, then theme words,
+//    fewest wrong words, fastest, first to finish) and write each player's result into their player
 //    record:  players/{uid}.history["YYYY-MM-DD"] = { t, s, ms, h, at, r, n }
 //             (+ m = the day's most words and th = theme words found, on themed days)
 //      t words (0-18, or 0-m) · s wrong words · ms solve time · h hint used
@@ -41,15 +42,25 @@ function isClosed(base, now) {
   const [y, m, d] = base.split("-").map(Number);
   return Date.UTC(y, m - 1, d + 1, 12) <= now;
 }
-// Same order as the game's leaderboard (index.html dailyCmp): words, then
-// theme words found (themed days), strikes, time, finish time.
+// Same order as the game's leaderboard (index.html dailyCmp / oldDailyCmp).
+// From NEW_RULES_DAY: points (a point per word, plus a bonus point per theme
+// word found), then time, then finish time. Earlier days: words, then theme
+// words found, strikes, time, finish time.
+const NEW_RULES_DAY = "2026-10-02";
+const entrantPoints = (e) => (e.total || 0) + (e.themeWords || 0);
 function dailyCmp(a, b) {
+  return (entrantPoints(b) - entrantPoints(a)) ||
+    ((a.solveMs || 0) - (b.solveMs || 0)) ||
+    ((a.finishedAt || 0) - (b.finishedAt || 0));
+}
+function oldDailyCmp(a, b) {
   return ((b.total || 0) - (a.total || 0)) ||
     ((b.themeWords || 0) - (a.themeWords || 0)) ||
     ((a.strikes || 0) - (b.strikes || 0)) ||
     ((a.solveMs || 0) - (b.solveMs || 0)) ||
     ((a.finishedAt || 0) - (b.finishedAt || 0));
 }
+const cmpForDay = (base) => (base >= NEW_RULES_DAY ? dailyCmp : oldDailyCmp);
 const nextDate = (base) => {
   const [y, m, d] = base.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
@@ -93,7 +104,7 @@ async function main() {
     const snap = await ref.get();
     if (!REBUILD && snap.exists && snap.data().finalized) continue;
     const entrants = (await ref.collection("entrants").get()).docs.map((d) => Object.assign({ uid: d.id }, d.data()));
-    entrants.sort(dailyCmp);
+    entrants.sort(cmpForDay(base));
     const n = entrants.length;
     const writer = db.bulkWriter();
     entrants.forEach((e, i) => {
