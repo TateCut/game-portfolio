@@ -7,7 +7,8 @@
 //    then who finished first; earlier days: most words, then theme words,
 //    fewest wrong words, fastest, first to finish) and write each player's result into their player
 //    record:  players/{uid}.history["YYYY-MM-DD"] = { t, s, ms, h, at, r, n }
-//             (+ m = the day's most words and th = theme words found, on themed days)
+//             (+ m = the day's most words and th = theme words found, on themed days;
+//              fk = forks in the trail where the theme word was played, on 6-7-8 days)
 //      t words (0-18, or 0-m) · s wrong words · ms solve time · h hint used
 //      at finished (epoch ms) · r final place · n players that day
 //    then mark dailies/{day}.finalized = true.
@@ -110,6 +111,7 @@ async function main() {
     entrants.forEach((e, i) => {
       const entry = { t: e.total || 0, s: e.strikes || 0, ms: e.solveMs || 0, h: !!e.hintUsed, at: e.finishedAt || 0, r: i + 1, n };
       if (e.max) Object.assign(entry, { m: e.max, th: e.themeWords || 0 });   // themed day
+      if (e.forks != null) entry.fk = e.forks;   // 6-7-8 day: forks taken (the Forks trophies)
       writer.set(db.doc(`players/${e.uid}`), { history: { [base]: entry } }, { merge: true });
       touched.add(e.uid);
     });
