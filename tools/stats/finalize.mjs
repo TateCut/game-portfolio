@@ -105,9 +105,20 @@ async function main() {
     const snap = await ref.get();
     if (!REBUILD && snap.exists && snap.data().finalized) continue;
     const entrants = (await ref.collection("entrants").get()).docs.map((d) => Object.assign({ uid: d.id }, d.data()));
+    // Hotfix v0.14.1: TASTER, TREATS and TASTIER became Food theme words during the Oct 14 daily. Results saved
+    // before the fix (no twv) didn't count them, so add a bonus point for each one played. Saving twv: 2 back
+    // keeps a rerun from adding them twice.
+    const fixed = new Set();
+    if (base === "2026-10-14") for (const e of entrants) {
+      if (e.twv) continue;
+      const played = (e.roundWords || []).flatMap((r) => (r && r.words) || []);
+      const extra = played.filter((w) => w === "taster" || w === "treats" || w === "tastier").length;
+      if (extra) { e.themeWords = (e.themeWords || 0) + extra; fixed.add(e.uid); }
+    }
     entrants.sort(cmpForDay(base));
     const n = entrants.length;
     const writer = db.bulkWriter();
+    for (const e of entrants) if (fixed.has(e.uid)) writer.set(ref.collection("entrants").doc(e.uid), { themeWords: e.themeWords, twv: 2 }, { merge: true });
     entrants.forEach((e, i) => {
       const entry = { t: e.total || 0, s: e.strikes || 0, ms: e.solveMs || 0, h: !!e.hintUsed, at: e.finishedAt || 0, r: i + 1, n };
       if (e.max) Object.assign(entry, { m: e.max, th: e.themeWords || 0 });   // themed day
