@@ -17,8 +17,8 @@ on:
         description: "Only log which never-locked names would be released"
         type: boolean
         default: false
-      checks_dry_run:
-        description: "Only log which results the score check would lower, and what the tidy-up would do"
+      checks_live:
+        description: "Let the score check and tidy-up make changes (until switched on for good, they only log what they would do)"
         type: boolean
         default: false
 
@@ -46,7 +46,7 @@ jobs:
       - run: node rescore.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          RESCORE_DRY_RUN: ${{ github.event.inputs.checks_dry_run == 'true' && '1' || '0' }}
+          RESCORE_DRY_RUN: ${{ github.event.inputs.checks_live == 'true' && '0' || '1' }}   # log-only until reviewed (v0.17.0)
       - run: node finalize.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -65,4 +65,4 @@ jobs:
       - run: node tidy.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          TIDY_DRY_RUN: ${{ github.event.inputs.checks_dry_run == 'true' && '1' || '0' }}
+          TIDY_DRY_RUN: ${{ github.event.inputs.checks_live == 'true' && '0' || '1' }}   # log-only until reviewed (v0.17.0)
