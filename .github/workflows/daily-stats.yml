@@ -13,6 +13,14 @@ on:
         description: "Redo every past day (not just new ones)"
         type: boolean
         default: false
+      release_dry_run:
+        description: "Only log which never-locked names would be released"
+        type: boolean
+        default: false
+      checks_dry_run:
+        description: "Only log which results the score check would lower, and what the tidy-up would do"
+        type: boolean
+        default: false
 
 concurrency:
   group: daily-stats
@@ -34,7 +42,27 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
+      # Re-check every closed day's results against its puzzle first (a total the words don't add up to is lowered).
+      - run: node rescore.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          RESCORE_DRY_RUN: ${{ github.event.inputs.checks_dry_run == 'true' && '1' || '0' }}
       - run: node finalize.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           REBUILD: ${{ github.event.inputs.rebuild == 'true' && '1' || '0' }}
+      # A compact copy of each finalized day's results, for the weekly leaderboard (one read instead of one per player).
+      - run: node boards.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          REBUILD: ${{ github.event.inputs.rebuild == 'true' && '1' || '0' }}
+      # Never-locked usernames (picked with no secret emoji) are released after 7 days without playing.
+      - run: node release-names.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          RELEASE_DRY_RUN: ${{ github.event.inputs.release_dry_run == 'true' && '1' || '0' }}
+      # Half-made name claims and old move links.
+      - run: node tidy.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TIDY_DRY_RUN: ${{ github.event.inputs.checks_dry_run == 'true' && '1' || '0' }}

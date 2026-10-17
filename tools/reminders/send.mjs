@@ -22,6 +22,7 @@ import { getMessaging } from "firebase-admin/messaging";
 
 const GAME_URL = "https://thedailyclimb.com/";
 const SEND_WINDOW_HOURS = 3;
+const MAX_TOKENS = 10;
 const TEST_UID = (process.env.TEST_UID || "").trim();
 
 let serviceAccount;
@@ -74,7 +75,8 @@ async function main() {
     if (!snap.exists) { console.log(`No player ${snap.id}`); continue; }
     const player = snap.data();
     const r = player.reminder || {};
-    const tokens = (r.tokens || []).filter(Boolean);
+    // The newest few devices (a player writes their own list, so it's capped here; one send takes at most 500).
+    const tokens = (Array.isArray(r.tokens) ? r.tokens : []).filter((t) => typeof t === "string" && t).slice(-MAX_TOKENS);
     if (!tokens.length) {
       if (TEST_UID) console.log(`Player ${snap.id} has no reminder devices. Turn reminders on in the game first.`);
       skipped++;
@@ -97,31 +99,37 @@ async function main() {
     }
 
     const title = REMINDER_TITLE;
-    const res = await fcm.sendEachForMulticast({
-      tokens,
-      webpush: {
-        headers: { TTL: String(6 * 3600), Urgency: "high" }, // stale after 6h: don't deliver yesterday's nudge
-        notification: { title, icon: GAME_URL + "icon-192.png", tag: "daily-reminder" },
-        data: { title, url: GAME_URL },
-        fcmOptions: { link: GAME_URL },
-      },
-    });
+    // One player's bad data never stops everyone else's reminders.
+    try {
+      const res = await fcm.sendEachForMulticast({
+        tokens,
+        webpush: {
+          headers: { TTL: String(6 * 3600), Urgency: "high" }, // stale after 6h: don't deliver yesterday's nudge
+          notification: { title, icon: GAME_URL + "icon-192.png", tag: "daily-reminder" },
+          data: { title, url: GAME_URL },
+          fcmOptions: { link: GAME_URL },
+        },
+      });
 
-    const dead = [];
-    res.responses.forEach((x, i) => {
-      if (x.success) return;
-      const code = x.error && x.error.code;
-      if (DEAD_TOKEN_CODES.has(code)) dead.push(tokens[i]);
-      else console.log(`Player ${snap.id}: send failed (${code || "unknown error"})`);
-    });
+      const dead = [];
+      res.responses.forEach((x, i) => {
+        if (x.success) return;
+        const code = x.error && x.error.code;
+        if (DEAD_TOKEN_CODES.has(code)) dead.push(tokens[i]);
+        else console.log(`Player ${snap.id}: send failed (${code || "unknown error"})`);
+      });
 
-    const update = {};
-    if (dead.length) { update["reminder.tokens"] = FieldValue.arrayRemove(...dead); pruned += dead.length; }
-    if (res.successCount > 0 && !TEST_UID) update["reminder.lastSentDay"] = today;
-    if (Object.keys(update).length) await snap.ref.update(update);
+      const update = {};
+      if (dead.length) { update["reminder.tokens"] = FieldValue.arrayRemove(...dead); pruned += dead.length; }
+      if (res.successCount > 0 && !TEST_UID) update["reminder.lastSentDay"] = today;
+      if (Object.keys(update).length) await snap.ref.update(update);
 
-    if (res.successCount > 0) sent++; else failed++;
-    if (TEST_UID) console.log(`Test to ${snap.id}: "${title}" to ${res.successCount}/${tokens.length} device(s)`);
+      if (res.successCount > 0) sent++; else failed++;
+      if (TEST_UID) console.log(`Test to ${snap.id}: "${title}" to ${res.successCount}/${tokens.length} device(s)`);
+    } catch (e) {
+      console.log(`Player ${snap.id}: couldn't send (${(e && (e.code || e.message)) || e})`);
+      failed++;
+    }
   }
   console.log(`Done. Reminded ${sent} player(s), skipped ${skipped}, failed ${failed}, removed ${pruned} dead device token(s).`);
 }
