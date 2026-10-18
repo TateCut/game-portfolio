@@ -56,6 +56,10 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           REBUILD: ${{ github.event.inputs.rebuild == 'true' && '1' || '0' }}
+      # Streak safety net: brings a streak up to date from the boards when the game couldn't (only moves forward).
+      - run: node streaks.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       # Never-locked usernames (picked with no secret emoji) are released after 7 days without playing.
       - run: node release-names.mjs
         env:
