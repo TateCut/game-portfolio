@@ -62,6 +62,11 @@ function oldDailyCmp(a, b) {
     ((a.finishedAt || 0) - (b.finishedAt || 0));
 }
 const cmpForDay = (base) => (base >= NEW_RULES_DAY ? dailyCmp : oldDailyCmp);
+// A guest: finished before picking a username, shown as "Climber #NNNN" (no username can contain '#'). Guests keep
+// their real place on the boards (r) but never win a trophy: tp is the place among named players (wins, podiums,
+// Three-Peat), written only when it differs from r, and 0 for a guest.
+const isGuest = (e) => !!e && (e.guest === true || /^Climber #\d{4}$/.test(e.name || ""));
+const trophyPlace = (e) => (e.tp != null ? e.tp : e.r);
 const nextDate = (base) => {
   const [y, m, d] = base.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
@@ -82,8 +87,9 @@ function computeStats(history) {
       if (!e.s) st.cleanPerfect++;
       if (e.ms > 0 && (st.fastestPerfectMs === null || e.ms < st.fastestPerfectMs)) st.fastestPerfectMs = e.ms;
     }
-    if (e.r === 1) st.wins++;
-    if (e.r >= 1 && e.r <= 3) st.podiums++;
+    const tp = trophyPlace(e);
+    if (tp === 1) st.wins++;
+    if (tp >= 1 && tp <= 3) st.podiums++;
     run = prev && nextDate(prev) === k ? run + 1 : 1;
     if (run > st.bestStreak) st.bestStreak = run;
     prev = k;
@@ -119,8 +125,11 @@ async function main() {
     const n = entrants.length;
     const writer = db.bulkWriter();
     for (const e of entrants) if (fixed.has(e.uid)) writer.set(ref.collection("entrants").doc(e.uid), { themeWords: e.themeWords, twv: 2 }, { merge: true });
+    let named = 0;
     entrants.forEach((e, i) => {
       const entry = { t: e.total || 0, s: e.strikes || 0, ms: e.solveMs || 0, h: !!e.hintUsed, at: e.finishedAt || 0, r: i + 1, n };
+      const tp = isGuest(e) ? 0 : ++named;
+      if (tp !== i + 1) entry.tp = tp;
       if (e.max) Object.assign(entry, { m: e.max, th: e.themeWords || 0 });   // themed day
       if (e.forks != null) entry.fk = e.forks;   // 6-7-8 day: forks taken (the Forks trophies)
       writer.set(db.doc(`players/${e.uid}`), { history: { [base]: entry } }, { merge: true });

@@ -4,7 +4,7 @@
 // The weekly board and Home's "You're Nth" add up every day of the week. Reading each day's entrants costs one
 // read per player per day per look; once a day is finalized its results never change, so this writes them onto the
 // day's own doc as a compact list, and the game reads that one doc instead (and keeps it on the phone):
-//   dailies/{day}.board = [{ u: uid, n: name, t: total, w: themeWords, s: strikes, ms: solveMs, at: finishedAt }]
+//   dailies/{day}.board = [{ u: uid, n: name, t: total, w: themeWords, s: strikes, ms: solveMs, at: finishedAt, g: 1 if a guest }]
 //   dailies/{day}.boardAt = when it was written
 // Days that already have a board are skipped (REBUILD=1 redoes them all). A day's doc tops out at 1 MB, about
 // 12,000 players; past that the board is left off and the game reads the entrants as before.
@@ -37,7 +37,7 @@ async function main() {
     const board = es.map((d) => {
       const e = d.data();
       return { u: d.id, n: String(e.name || "Player").slice(0, 24), t: e.total || 0, w: e.themeWords || 0, s: e.strikes || 0,
-        ms: Math.round(e.solveMs || 0), at: e.finishedAt || 0 };
+        ms: Math.round(e.solveMs || 0), at: e.finishedAt || 0, ...(e.guest === true ? { g: 1 } : {}) };
     });
     await ref.set({ board, boardAt: Date.now() }, { merge: true });
     written++;

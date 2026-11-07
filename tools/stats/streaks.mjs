@@ -43,6 +43,9 @@ async function main() {
     // the run of consecutive days ending on the latest result (the boards hold every day they played)
     let streak = 1;
     for (let k = bases.length - 1; k > 0 && nextDay(bases[k - 1]) === bases[k]; k--) streak++;
+    // The profile's own streak ends the day before: carry it on. (An Archives repair fills missed days that are on
+    // no board, so the boards alone would count a repaired streak as broken.)
+    if (p.dailyLastDay && nextDay(dayBase(p.dailyLastDay)) === last) streak = Math.max(streak, (p.dailyStreak || 0) + 1);
     console.log(`${DRY ? "[dry run] would set" : "Setting"} ${JSON.stringify(p.username || p.name || uid)}: last day ${p.dailyLastDay || "none"} -> ${days.get(last)}, streak ${p.dailyStreak || 0} -> ${streak}`);
     if (!DRY) await snap.ref.set({ dailyLastDay: days.get(last), dailyStreak: streak, bestStreak: Math.max(p.bestStreak || 0, streak) }, { merge: true });
     fixed++;
