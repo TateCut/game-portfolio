@@ -53,6 +53,9 @@ function isInflectionOf(word, prev) {
   return false;
 }
 const cheapStep = (prev, next) => !!prev && !!next && (next.length >= prev.length ? isInflectionOf(next, prev) : isInflectionOf(prev, next));
+// From NO_CHEAP_DAY there is no cheap-step rule (v0.22.0): any word that fits counts; dailies are built so no step can be
+// solved by adding an S. Days before it keep the old rule (the game refuses those words on them too).
+const NO_CHEAP_DAY = "2026-11-17";
 
 // The day's puzzle: { base, id, climbs: [[rung words]], words: [[calendar theme words]], theme: Set } or null.
 function themedDay(data, key) {
@@ -80,7 +83,7 @@ function checkEntrant(e, t, data) {
     played.slice(0, rungs.length).forEach((w, k) => {
       w = String(w);
       if (!/^[a-z]+$/.test(w) || sortStr(w) !== sortStr(rungs[k])) { why.push(`Climb ${i + 1}: "${w}" doesn't fit rung ${k + 1}`); prev = w; return; }
-      if (cheapStep(prev, w)) { why.push(`Climb ${i + 1}: "${w}" is "${prev}" plus an ending`); prev = w; return; }
+      if (t.base < NO_CHEAP_DAY && cheapStep(prev, w)) { why.push(`Climb ${i + 1}: "${w}" is "${prev}" plus an ending`); prev = w; return; }
       prev = w;
       words++;
       if (!data.words.has(w)) unlisted.push(w);
